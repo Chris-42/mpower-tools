@@ -6,7 +6,10 @@ log() {
 
 # read config file
 source $BIN_PATH/client/mpower-pub.cfg
-export PUBBIN=$BIN_PATH/mosquitto_pub
+export PUBBIN="$BIN_PATH/mosquitto_pub -q 1"
+
+# identify type of mpower
+export PORTS=`cat /etc/board.inc | grep feature_power | sed -e 's/.*\([0-9]\+\);/\1/'`
 
 log "Found $((PORTS)) ports."
 log "Publishing to $mqtthost with topic $topic"
@@ -47,6 +50,7 @@ do
 		else
 			# time to update
 			REFRESHCOUNTER=$refresh
+			#echo "normal update"
 		fi
 	fi
 
@@ -56,11 +60,11 @@ do
         for i in $(seq $PORTS)
         do
             relay_val=`cat /proc/power/relay$((i))`
-            if [ $relay_val -ne 1 ]
-            then
-              relay_val=0
+            if [ $relay_val -eq 1 ]; then
+                $PUBBIN -h $mqtthost -t $topic/port$i/relay -m "true" -r
+            else
+                $PUBBIN -h $mqtthost -t $topic/port$i/relay -m "false" -r
             fi
-            $PUBBIN -h $mqtthost $auth -t $topic/port$i/relay -m "$relay_val" -r
         done
     fi
     
@@ -71,7 +75,7 @@ do
         do
             power_val=`cat /proc/power/active_pwr$((i))`
             power_val=`printf "%.1f" $power_val`
-            $PUBBIN -h $mqtthost $auth -t $topic/port$i/power -m "$power_val" -r
+            $PUBBIN -h $mqtthost -t $topic/port$i/power -m "$power_val" -r
         done
     fi
 
@@ -83,7 +87,7 @@ do
             energy_val=`cat /proc/power/cf_count$((i))`
             energy_val=$(awk -vn1="$energy_val" -vn2="0.3125" 'BEGIN{print n1*n2}')
             energy_val=`printf "%.0f" $energy_val`
-            $PUBBIN -h $mqtthost $auth -t $topic/port$i/energy -m "$energy_val" -r
+            $PUBBIN -h $mqtthost -t $topic/port$i/energy -m "$energy_val" -r
         done
     fi
     
@@ -94,7 +98,7 @@ do
         do
             voltage_val=`cat /proc/power/v_rms$((i))`
             voltage_val=`printf "%.1f" $voltage_val`
-            $PUBBIN -h $mqtthost $auth -t $topic/port$i/voltage -m "$voltage_val" -r
+            $PUBBIN -h $mqtthost -t $topic/port$i/voltage -m "$voltage_val" -r
         done
     fi
     
@@ -104,7 +108,7 @@ do
         for i in $(seq $PORTS)
         do
             port_val=`cat /proc/power/lock$((i))`
-            $PUBBIN -h $mqtthost $auth -t $topic/port$i/lock -m "$port_val" -r
+            $PUBBIN -h $mqtthost -t $topic/port$i/lock -m "$port_val" -r
         done
     fi
 done

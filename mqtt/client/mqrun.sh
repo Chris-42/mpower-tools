@@ -20,12 +20,6 @@ if [ -z "$mqtthost" ]; then
     exit 0
 fi
 
-if [ -z "$mqttusername" ] || [ -z "$mqttpassword" ]; then
-    export auth=""
-else
-    export auth="-u $mqttusername -P $mqttpassword"
-fi
-
 # lets stop any process from former start attempts
 $BIN_PATH/client/mqstop.sh
 
@@ -40,8 +34,6 @@ export mqtthost
 export refresh
 export tmpfile
 export version
-# identify type of mpower
-export PORTS=`cat /etc/board.inc | grep feature_power | sed -e 's/.*\([0-9]\+\);/\1/'`
 
 log "starting pub and sub scripts"
 $BIN_PATH/client/mqpub.sh &
